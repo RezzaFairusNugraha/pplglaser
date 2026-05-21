@@ -1,0 +1,100 @@
+version: "3.8"
+
+# ─── PPLG Laser CNC — Podman Compose ───────────────────────────────
+# Usage:
+#   podman-compose up -d
+#   podman-compose down
+#   podman-compose logs -f
+#
+# ⚠️  Sebelum pertama kali run, copy .env.example → .env dan ganti password!
+
+services:
+
+  # ── Database (MariaDB — ARM-compatible) ───────────────────────────────────
+  db:
+    image: docker.io/mariadb:10.11
+    container_name: antigravity-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret123}
+      MYSQL_DATABASE: ${DB_NAME:-antigravity_db}
+      MYSQL_USER: ${DB_USER:-antigravity}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-antigravity123}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    container_name: antigravity-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-antigravity}
+      DB_PASSWORD: ${DB_PASSWORD:-antigravity123}
+      DB_NAME: ${DB_NAME:-antigravity_db}
+      ADMIN_SECRET: ${ADMIN_SECRET:-pplglaser}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Frontend (Next.js) ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Containerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    container_name: antigravity-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_ADMIN_SECRET: ${ADMIN_SECRET:-pplglaser}
+    depends_on:
+      - backend
+    networks:
+      - internal
+
+  # ── Nginx (Reverse Proxy) ─────────────────────────────────────────────────
+  nginx:
+    image: docker.io/nginx:alpine
+    container_name: antigravity-nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
