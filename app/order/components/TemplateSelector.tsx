@@ -37,7 +37,7 @@ export default function TemplateSelector() {
         <p className="text-gray-400">Pilih bentuk dasar untuk desain laser CNC kamu</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-4xl mx-auto mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
         {templates.map((template, i) => {
           const isSelected = selectedTemplate?.id === template.id;
           return (
@@ -88,12 +88,12 @@ export default function TemplateSelector() {
         })}
       </div>
 
-      <div className="flex justify-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-center gap-3">
         <Button
           onClick={handleBack}
           variant="outline"
           size="lg"
-          className="border-white/20 text-white hover:bg-white/10 rounded-xl"
+          className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 rounded-xl"
         >
           ← Kembali
         </Button>
@@ -101,7 +101,7 @@ export default function TemplateSelector() {
           onClick={handleNext}
           disabled={!selectedTemplate}
           size="lg"
-          className="bg-brand hover:bg-brand-dark disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold px-12 rounded-xl"
+          className="w-full sm:w-auto bg-brand hover:bg-brand-dark disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold px-12 rounded-xl"
         >
           Lanjut ke Editor →
         </Button>

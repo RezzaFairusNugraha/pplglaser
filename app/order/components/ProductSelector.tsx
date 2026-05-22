@@ -78,7 +78,7 @@ export default function ProductSelector() {
           onClick={handleNext}
           disabled={!selectedProduct}
           size="lg"
-          className="bg-brand hover:bg-brand-dark disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold px-12 rounded-xl"
+          className="w-full sm:w-auto bg-brand hover:bg-brand-dark disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold px-12 rounded-xl"
         >
           {selectedProduct?.hasTemplate ? "Lanjut ke Template →" : "Lanjut ke Editor →"}
         </Button>

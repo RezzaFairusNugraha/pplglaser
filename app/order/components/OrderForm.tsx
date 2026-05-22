@@ -173,7 +173,7 @@ export default function OrderForm() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4 }}
-      className="max-w-2xl mx-auto"
+      className="w-full max-w-2xl mx-auto"
     >
       <div className="text-center mb-6">
         <h2 className="font-heading text-2xl sm:text-3xl font-bold text-white mb-2">
@@ -191,9 +191,9 @@ export default function OrderForm() {
 
       {/* Summary card */}
       <Card className="bg-dark-50/50 border-white/10 mb-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <h3 className="text-white font-semibold mb-4">Ringkasan Pesanan</h3>
-          <div className="flex gap-4 items-start">
+          <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
             {store.canvasDataUrl ? (
               <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 relative group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -218,31 +218,31 @@ export default function OrderForm() {
                 </div>
               )
             )}
-            <div className="space-y-2 text-sm">
-              <div className="flex gap-2">
-                <span className="text-gray-500">Produk:</span>
+            <div className="space-y-2 text-sm min-w-0 flex-1">
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-gray-500 flex-shrink-0">Produk:</span>
                 <span className="text-white font-medium">{store.selectedProduct?.name}</span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-gray-500">Harga:</span>
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-gray-500 flex-shrink-0">Harga:</span>
                 <span className="text-white">Rp {store.selectedProduct?.price.toLocaleString("id-ID")}</span>
               </div>
               {store.selectedTemplate && (
                 <>
-                  <div className="flex gap-2">
-                    <span className="text-gray-500">Template:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-gray-500 flex-shrink-0">Template:</span>
                     <span className="text-white">{store.selectedTemplate.name}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="text-gray-500">Ukuran:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-gray-500 flex-shrink-0">Ukuran:</span>
                     <span className="text-white">
                       {store.selectedTemplate.dimensions.width}×{store.selectedTemplate.dimensions.height} mm
                     </span>
                   </div>
                 </>
               )}
-              <div className="flex gap-2">
-                <span className="text-gray-500">Waktu:</span>
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-gray-500 flex-shrink-0">Waktu:</span>
                 <span className="text-white">
                   {store.timestamp ? format(store.timestamp, "dd MMM yyyy, HH:mm", { locale: localeId }) : "-"}
                 </span>

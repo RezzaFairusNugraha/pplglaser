@@ -35,21 +35,21 @@ export default function OrderPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-dark-500">
+    <main className="min-h-screen bg-dark-500 overflow-x-hidden w-full">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-dark-500/80 backdrop-blur-xl border-b border-white/5">
+      <nav className="sticky top-0 z-50 bg-dark-500/80 backdrop-blur-xl border-b border-white/5 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/smk4padalarang.png" alt="Logo SMK" width={32} height={32} className="object-contain" />
-            <span className="font-heading text-base font-bold tracking-wider text-white">UP PPLG</span>
+          <Link href="/" className="flex items-center gap-3 min-w-0">
+            <Image src="/smk4padalarang.png" alt="Logo SMK" width={32} height={32} className="object-contain flex-shrink-0" />
+            <span className="font-heading text-base font-bold tracking-wider text-white truncate">UP PPLG</span>
           </Link>
-          <Link href="/" className="text-sm text-gray-400 hover:text-brand transition-colors">
+          <Link href="/" className="text-sm text-gray-400 hover:text-brand transition-colors flex-shrink-0 ml-4">
             ← Beranda
           </Link>
         </div>
       </nav>
 
-      <div className="px-4 py-8 max-w-5xl mx-auto">
+      <div className="px-4 py-8 max-w-5xl mx-auto w-full">
         <StepIndicator currentStep={currentStep} steps={steps} />
 
         <div className="mt-8">

@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Stage, Layer, Image as KonvaImage, Text as KonvaText, Transformer, Group, Line } from "react-konva";
+import { Stage, Layer, Image as KonvaImage, Text as KonvaText, Transformer, Group, Line, Rect } from "react-konva";
 import Konva from "konva";
 import { motion } from "framer-motion";
 import { useOrderStore } from "@/lib/store";
 import { getTemplateImagePath } from "@/lib/templates";
 import { Button } from "@/components/ui/button";
 import templatePaths from "@/lib/template_paths.json";
-
 import { Input } from "@/components/ui/input";
 
 interface UserImage {
@@ -35,12 +34,12 @@ interface UserText {
   rotation: number;
 }
 
-const CANVAS_WIDTH = 500;
-const CANVAS_HEIGHT = 500;
+const CANVAS_SIZE = 500; // logical canvas is always 500×500
 
 export default function CanvasEditor() {
   const { selectedProduct, selectedTemplate, setStep, setCanvasDataUrl } = useOrderStore();
   const stageRef = useRef<Konva.Stage>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
 
@@ -49,10 +48,29 @@ export default function CanvasEditor() {
   const [userTexts, setUserTexts] = useState<UserText[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newText, setNewText] = useState("");
-  const [textColor, setTextColor] = useState("#FFFFFF");
+  const [textColor, setTextColor] = useState("#000000");
   const [textSize, setTextSize] = useState(24);
+  const [displaySize, setDisplaySize] = useState(CANVAS_SIZE);
 
-  // Load template image
+  // ── Responsive: measure wrapper and compute display size ──
+  useEffect(() => {
+    const measure = () => {
+      if (wrapperRef.current) {
+        // Take the full width of the wrapper, cap at 500
+        const w = wrapperRef.current.clientWidth;
+        setDisplaySize(Math.min(w, CANVAS_SIZE));
+      }
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (wrapperRef.current) ro.observe(wrapperRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // ── Scale factor (logical → display) ──
+  const scale = displaySize / CANVAS_SIZE;
+
+  // ── Load template image ──
   useEffect(() => {
     if (!selectedTemplate) return;
     const img = new window.Image();
@@ -61,12 +79,11 @@ export default function CanvasEditor() {
     img.onload = () => setTemplateImg(img);
   }, [selectedTemplate]);
 
-  // Update transformer
+  // ── Sync transformer with selected node ──
   useEffect(() => {
     if (!transformerRef.current || !stageRef.current) return;
-    const stage = stageRef.current;
     if (selectedId) {
-      const node = stage.findOne("#" + selectedId);
+      const node = stageRef.current.findOne("#" + selectedId);
       if (node) {
         transformerRef.current.nodes([node]);
         transformerRef.current.getLayer()?.batchDraw();
@@ -77,6 +94,7 @@ export default function CanvasEditor() {
     transformerRef.current.getLayer()?.batchDraw();
   }, [selectedId, userImages, userTexts]);
 
+  // ── Handlers ──
   const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -85,14 +103,14 @@ export default function CanvasEditor() {
       const img = new window.Image();
       img.src = reader.result as string;
       img.onload = () => {
-        const scale = Math.min(200 / img.width, 200 / img.height, 1);
+        const imgScale = Math.min(200 / img.width, 200 / img.height, 1);
         const newImg: UserImage = {
           id: `img-${Date.now()}`,
           image: img,
-          x: CANVAS_WIDTH / 2 - (img.width * scale) / 2,
-          y: CANVAS_HEIGHT / 2 - (img.height * scale) / 2,
-          width: img.width * scale,
-          height: img.height * scale,
+          x: CANVAS_SIZE / 2 - (img.width * imgScale) / 2,
+          y: CANVAS_SIZE / 2 - (img.height * imgScale) / 2,
+          width: img.width * imgScale,
+          height: img.height * imgScale,
           scaleX: 1,
           scaleY: 1,
           rotation: 0,
@@ -110,8 +128,8 @@ export default function CanvasEditor() {
     const txt: UserText = {
       id: `txt-${Date.now()}`,
       text: newText,
-      x: CANVAS_WIDTH / 2 - 50,
-      y: CANVAS_HEIGHT / 2,
+      x: CANVAS_SIZE / 2 - 50,
+      y: CANVAS_SIZE / 2,
       fontSize: textSize,
       fill: textColor,
       scaleX: 1,
@@ -129,15 +147,15 @@ export default function CanvasEditor() {
     setSelectedId(null);
   };
 
-  const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (e.target === e.target.getStage() || e.target.name() === "template-bg") {
+  const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    const target = e.target;
+    if (target === target.getStage() || target.name() === "canvas-bg" || target.name() === "template-bg") {
       setSelectedId(null);
     }
   };
 
   const handleDragEnd = (id: string, e: Konva.KonvaEventObject<DragEvent>) => {
-    const isImage = id.startsWith("img-");
-    if (isImage) {
+    if (id.startsWith("img-")) {
       setUserImages((prev) =>
         prev.map((img) => img.id === id ? { ...img, x: e.target.x(), y: e.target.y() } : img)
       );
@@ -150,19 +168,11 @@ export default function CanvasEditor() {
 
   const handleTransformEnd = (id: string, e: Konva.KonvaEventObject<Event>) => {
     const node = e.target;
-    const isImage = id.startsWith("img-");
-    if (isImage) {
+    if (id.startsWith("img-")) {
       setUserImages((prev) =>
         prev.map((img) =>
           img.id === id
-            ? {
-                ...img,
-                x: node.x(),
-                y: node.y(),
-                scaleX: node.scaleX(),
-                scaleY: node.scaleY(),
-                rotation: node.rotation(),
-              }
+            ? { ...img, x: node.x(), y: node.y(), scaleX: node.scaleX(), scaleY: node.scaleY(), rotation: node.rotation() }
             : img
         )
       );
@@ -170,45 +180,52 @@ export default function CanvasEditor() {
       setUserTexts((prev) =>
         prev.map((txt) =>
           txt.id === id
-            ? {
-                ...txt,
-                x: node.x(),
-                y: node.y(),
-                scaleX: node.scaleX(),
-                scaleY: node.scaleY(),
-                rotation: node.rotation(),
-              }
+            ? { ...txt, x: node.x(), y: node.y(), scaleX: node.scaleX(), scaleY: node.scaleY(), rotation: node.rotation() }
             : txt
         )
       );
     }
   };
 
+  // ── Export at full resolution (reset scale before capture) ──
   const exportCanvas = useCallback(() => {
     if (!stageRef.current) return;
-    // Deselect for clean export
     setSelectedId(null);
-    
-    // Hide template background and outline stroke for clean export
+
     const stage = stageRef.current;
     const bgNode = stage.findOne(".template-bg");
     const outlineNode = stage.findOne(".template-outline");
-    
+
     if (bgNode) bgNode.hide();
     if (outlineNode) outlineNode.hide();
-    
+
+    // Temporarily render at full 500×500 for clean high-res export
+    stage.scale({ x: 1, y: 1 });
+    stage.width(CANVAS_SIZE);
+    stage.height(CANVAS_SIZE);
+    stage.batchDraw();
+
     setTimeout(() => {
-      if (!stageRef.current) return;
-      const dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
-      
-      // Restore visibility after export
+      const dataUrl = stageRef.current!.toDataURL({ pixelRatio: 2 });
+
+      // Restore display scale
+      stage.scale({ x: scale, y: scale });
+      stage.width(displaySize);
+      stage.height(displaySize);
+
       if (bgNode) bgNode.show();
       if (outlineNode) outlineNode.show();
-      
+      stage.batchDraw();
+
       setCanvasDataUrl(dataUrl);
-      setStep(selectedProduct?.hasTemplate ? 4 : 3); // Go to OrderForm
-    }, 100);
-  }, [setCanvasDataUrl, setStep, selectedProduct]);
+      setStep(selectedProduct?.hasTemplate ? 4 : 3);
+    }, 150);
+  }, [scale, displaySize, setCanvasDataUrl, setStep, selectedProduct]);
+
+  // ── Template clip path ──
+  const clipPath = selectedProduct?.hasTemplate && selectedTemplate
+    ? (templatePaths as Record<string, { x: number; y: number }[]>)[selectedTemplate.id]
+    : null;
 
   return (
     <motion.div
@@ -216,22 +233,25 @@ export default function CanvasEditor() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4 }}
+      className="w-full"
     >
-      <div className="text-center mb-6">
-        <h2 className="font-heading text-2xl sm:text-3xl font-bold text-white mb-2">
+      {/* Heading */}
+      <div className="text-center mb-4">
+        <h2 className="font-heading text-xl sm:text-3xl font-bold text-white mb-1">
           Edit <span className="text-brand">Desain</span>
         </h2>
-        <p className="text-gray-400">Tambahkan gambar dan teks di atas template</p>
+        <p className="text-gray-400 text-sm">Tambahkan gambar dan teks di atas template</p>
       </div>
 
-      {/* Toolbar */}
-      <div className="max-w-xl mx-auto mb-4 space-y-3">
+      {/* ── Toolbar ── */}
+      <div className="w-full mb-4 space-y-3">
+        {/* Action buttons row */}
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="border-brand/50 text-brand hover:bg-brand/10"
+            className="border-brand/50 text-brand hover:bg-brand/10 flex-1 sm:flex-none"
           >
             📷 Upload Gambar
           </Button>
@@ -239,7 +259,7 @@ export default function CanvasEditor() {
             variant="outline"
             size="sm"
             onClick={handleReset}
-            className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+            className="border-red-500/50 text-red-400 hover:bg-red-500/10 flex-1 sm:flex-none"
           >
             🗑 Reset
           </Button>
@@ -247,7 +267,7 @@ export default function CanvasEditor() {
             variant="outline"
             size="sm"
             onClick={() => setStep(selectedProduct?.hasTemplate ? 2 : 1)}
-            className="border-white/20 text-gray-400 hover:bg-white/5"
+            className="border-white/20 text-gray-400 hover:bg-white/5 flex-1 sm:flex-none"
           >
             ← Kembali
           </Button>
@@ -259,71 +279,90 @@ export default function CanvasEditor() {
             className="hidden"
           />
         </div>
-        <div className="flex gap-2 items-end flex-wrap">
-          <div className="flex-1 min-w-[150px]">
+
+        {/* Text input row */}
+        <div className="flex gap-2 items-center flex-wrap">
+          <Input
+            placeholder="Ketik teks..."
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddText()}
+            className="bg-dark-100 border-white/10 text-white h-9 flex-1 min-w-0"
+          />
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Input
-              placeholder="Ketik teks..."
-              value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddText()}
-              className="bg-dark-100 border-white/10 text-white h-9"
+              type="color"
+              value={textColor}
+              onChange={(e) => setTextColor(e.target.value)}
+              title="Warna teks"
+              className="w-10 h-9 p-1 bg-dark-100 border-white/10 cursor-pointer flex-shrink-0"
             />
+            <Input
+              type="number"
+              min={8}
+              max={72}
+              value={textSize}
+              onChange={(e) => setTextSize(Number(e.target.value))}
+              className="w-16 bg-dark-100 border-white/10 text-white h-9 text-center flex-shrink-0"
+            />
+            <Button size="sm" onClick={handleAddText} className="bg-brand hover:bg-brand-dark text-white h-9 flex-shrink-0">
+              + Teks
+            </Button>
           </div>
-          <Input
-            type="color"
-            value={textColor}
-            onChange={(e) => setTextColor(e.target.value)}
-            className="w-10 h-9 p-1 bg-dark-100 border-white/10 cursor-pointer"
-          />
-          <Input
-            type="number"
-            min={8}
-            max={72}
-            value={textSize}
-            onChange={(e) => setTextSize(Number(e.target.value))}
-            className="w-16 bg-dark-100 border-white/10 text-white h-9 text-center"
-          />
-          <Button size="sm" onClick={handleAddText} className="bg-brand hover:bg-brand-dark text-white h-9">
-            + Teks
-          </Button>
         </div>
       </div>
 
-      {/* Canvas */}
-      <div className="flex justify-center mb-4">
-        <div className="canvas-container relative" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
+      {/* ── Canvas area ── */}
+      {/* wrapperRef measures available width */}
+      <div ref={wrapperRef} className="w-full flex justify-center mb-4">
+        <div
+          className="canvas-container relative rounded-lg overflow-hidden"
+          style={{ width: displaySize, height: displaySize, background: "#ffffff", flexShrink: 0 }}
+        >
           <Stage
             ref={stageRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            width={displaySize}
+            height={displaySize}
+            scaleX={scale}
+            scaleY={scale}
             onClick={handleStageClick}
             onTap={handleStageClick}
           >
-            {/* Template layer */}
+            {/* White background layer */}
+            <Layer>
+              <Rect
+                x={0}
+                y={0}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                fill="#ffffff"
+                name="canvas-bg"
+                listening={true}
+              />
+            </Layer>
+
+            {/* Template image layer */}
             <Layer>
               {selectedProduct?.hasTemplate && templateImg && (
                 <KonvaImage
                   image={templateImg}
-                  width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT}
+                  width={CANVAS_SIZE}
+                  height={CANVAS_SIZE}
                   name="template-bg"
                   listening={true}
                 />
               )}
             </Layer>
 
-            {/* User content layer */}
+            {/* User content layer (clipped to template shape) */}
             <Layer>
               <Group
                 clipFunc={(ctx) => {
-                  if (!selectedProduct?.hasTemplate || !selectedTemplate) return;
-                  const path = (templatePaths as Record<string, { x: number; y: number }[]>)[selectedTemplate.id];
-                  if (!path || path.length === 0) return;
-                  
+                  if (!clipPath || clipPath.length === 0) return;
                   ctx.beginPath();
-                  ctx.moveTo(path[0].x, path[0].y);
-                  for (let i = 1; i < path.length; i++) {
-                    ctx.lineTo(path[i].x, path[i].y);
+                  ctx.moveTo(clipPath[0].x, clipPath[0].y);
+                  for (let i = 1; i < clipPath.length; i++) {
+                    ctx.lineTo(clipPath[i].x, clipPath[i].y);
                   }
                   ctx.closePath();
                 }}
@@ -341,14 +380,8 @@ export default function CanvasEditor() {
                     scaleY={img.scaleY ?? 1}
                     rotation={img.rotation}
                     draggable
-                    onClick={(e) => {
-                      e.cancelBubble = true;
-                      setSelectedId(img.id);
-                    }}
-                    onTap={(e) => {
-                      e.cancelBubble = true;
-                      setSelectedId(img.id);
-                    }}
+                    onClick={(e) => { e.cancelBubble = true; setSelectedId(img.id); }}
+                    onTap={(e) => { e.cancelBubble = true; setSelectedId(img.id); }}
                     onDragEnd={(e) => handleDragEnd(img.id, e)}
                     onTransformEnd={(e) => handleTransformEnd(img.id, e)}
                   />
@@ -366,14 +399,8 @@ export default function CanvasEditor() {
                     scaleY={txt.scaleY ?? 1}
                     rotation={txt.rotation}
                     draggable
-                    onClick={(e) => {
-                      e.cancelBubble = true;
-                      setSelectedId(txt.id);
-                    }}
-                    onTap={(e) => {
-                      e.cancelBubble = true;
-                      setSelectedId(txt.id);
-                    }}
+                    onClick={(e) => { e.cancelBubble = true; setSelectedId(txt.id); }}
+                    onTap={(e) => { e.cancelBubble = true; setSelectedId(txt.id); }}
                     onDragEnd={(e) => handleDragEnd(txt.id, e)}
                     onTransformEnd={(e) => handleTransformEnd(txt.id, e)}
                     fontFamily="Inter"
@@ -381,15 +408,16 @@ export default function CanvasEditor() {
                 ))}
               </Group>
 
-              {/* Highlight template outline border */}
-              {selectedProduct?.hasTemplate && selectedTemplate && (templatePaths as Record<string, { x: number; y: number }[]>)[selectedTemplate.id] && (
+              {/* Template outline border */}
+              {clipPath && clipPath.length > 0 && (
                 <Line
-                  points={(templatePaths as Record<string, { x: number; y: number }[]>)[selectedTemplate.id].flatMap((p) => [p.x, p.y])}
-                  stroke="#000000"
-                  strokeWidth={2}
+                  points={clipPath.flatMap((p) => [p.x, p.y])}
+                  stroke="#888888"
+                  strokeWidth={1.5}
                   closed
                   listening={false}
                   name="template-outline"
+                  dash={[6, 3]}
                 />
               )}
 
@@ -399,33 +427,36 @@ export default function CanvasEditor() {
                   if (newBox.width < 10 || newBox.height < 10) return oldBox;
                   return newBox;
                 }}
-                borderStroke="#000000"
-                anchorStroke="#000000"
-                anchorFill="#000000"
+                borderStroke="#FF6B00"
+                anchorStroke="#FF6B00"
+                anchorFill="#ffffff"
                 anchorSize={8}
               />
             </Layer>
-
           </Stage>
 
           {/* Dimensions badge */}
           {selectedProduct?.hasTemplate && selectedTemplate && (
-            <div className="absolute bottom-2 right-2 bg-black/70 text-brand text-xs px-2 py-1 rounded font-mono">
+            <div className="absolute bottom-2 right-2 bg-black/60 text-brand text-xs px-2 py-0.5 rounded font-mono pointer-events-none">
               {selectedTemplate.dimensions.width}×{selectedTemplate.dimensions.height} mm
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex justify-center">
-        <Button
-          onClick={exportCanvas}
-          size="lg"
-          className="bg-brand hover:bg-brand-dark text-white font-bold px-12 rounded-xl"
-        >
-          Lanjut ke Detail Pesanan →
-        </Button>
-      </div>
+      {/* Hint text */}
+      <p className="text-center text-xs text-gray-500 mb-4">
+        Tap elemen untuk memilih • Drag untuk memindahkan • Pinch/drag sudut untuk resize
+      </p>
+
+      {/* Continue button */}
+      <Button
+        onClick={exportCanvas}
+        size="lg"
+        className="w-full bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-6 text-base"
+      >
+        Lanjut ke Detail Pesanan →
+      </Button>
     </motion.div>
   );
 }

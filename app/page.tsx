@@ -25,15 +25,11 @@ const steps = [
   { num: "03", title: "Kirim ke WA", desc: "Download preview lalu kirim pesanan via WhatsApp" },
 ];
 
-const testimonials = [
-  { name: "Andi P.", text: "Hasil potong laser-nya rapi banget, presisi tinggi. Sangat puas!", rating: 5 },
-  { name: "Sari M.", text: "Proses pesanan cepat dan mudah lewat WhatsApp. Recommended!", rating: 5 },
-  { name: "Budi R.", text: "Kualitas engraving luar biasa detail. Pasti order lagi.", rating: 5 },
-];
+
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-dark-500 overflow-hidden">
+    <main className="min-h-screen bg-dark-500 overflow-x-hidden w-full">
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-dark-500/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -56,10 +52,10 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center bg-grid pt-16">
+      <section className="relative min-h-screen flex items-center justify-center bg-grid pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-dark-500 via-transparent to-dark-500" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand/10 rounded-full blur-[150px]" />
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-brand/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto w-full">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <span className="inline-block px-4 py-1.5 rounded-full border border-brand/30 bg-brand/10 text-brand text-sm font-medium mb-6">
               ⚡ Unit Produksi PPLG SMK 4 Padalarang
@@ -75,13 +71,13 @@ export default function LandingPage() {
             Dikelola langsung oleh siswa dan pembimbing jurusan Pengembangan Perangkat Lunak dan Gim (PPLG) untuk melayani kebutuhan cetak plakat, medali, dan gantungan kunci.
           </motion.p>
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/order">
-              <Button size="lg" className="bg-brand hover:bg-brand-dark text-white font-bold px-10 py-6 text-lg rounded-xl glow-orange">
+            <Link href="/order" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto bg-brand hover:bg-brand-dark text-white font-bold px-10 py-6 text-lg rounded-xl glow-orange">
                 Buat Pesanan →
               </Button>
             </Link>
-            <a href="#about">
-              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/5 px-10 py-6 text-lg rounded-xl">
+            <a href="#about" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/5 px-10 py-6 text-lg rounded-xl">
                 Pelajari Lebih
               </Button>
             </a>
@@ -100,7 +96,7 @@ export default function LandingPage() {
               Kami adalah Unit Produksi (Teaching Factory) di SMK Negeri 4 Padalarang. Selain berfokus pada pengembangan perangkat lunak, kami juga menyediakan jasa pemotongan dan ukir (engraving) dengan mesin Laser CNC modern.
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[
               { icon: "🎓", title: "Karya Siswa", desc: "Produk dikerjakan langsung oleh siswa terpilih di bawah bimbingan guru produktif." },
               { icon: "⚙️", title: "Mesin Modern", desc: "Menggunakan mesin Laser CNC untuk hasil potong akrilik dan kayu yang rapi." },
@@ -129,7 +125,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-gray-400 text-lg">Berbagai jenis layanan dan produk custom yang bisa Anda pesan</p>
           </motion.div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((item, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
                 className="relative aspect-square rounded-xl overflow-hidden border border-white/5 group cursor-pointer bg-dark-100 flex items-center justify-center">
