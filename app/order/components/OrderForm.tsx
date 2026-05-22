@@ -264,23 +264,37 @@ export default function OrderForm() {
           />
         </div>
         <div>
-          <label className="text-sm text-gray-400 mb-1.5 block">Nomor WhatsApp (opsional)</label>
+          <label className="text-sm text-gray-400 mb-1.5 block">
+            Nomor WhatsApp <span className="text-brand">*</span>
+          </label>
           <Input
             placeholder="contoh: 08123456789"
             value={store.whatsappNumber}
             onChange={(e) => store.setWhatsappNumber(e.target.value)}
-            className="bg-dark-100 border-white/10 text-white focus:border-brand"
+            className={`bg-dark-100 border-white/10 text-white focus:border-brand ${
+              store.whatsappNumber.trim() === "" ? "border-red-500/30" : ""
+            }`}
           />
+          {store.whatsappNumber.trim() === "" && (
+            <p className="text-xs text-red-400 mt-1">Nomor WhatsApp wajib diisi</p>
+          )}
         </div>
         <div>
-          <label className="text-sm text-gray-400 mb-1.5 block">Catatan Tambahan (opsional)</label>
+          <label className="text-sm text-gray-400 mb-1.5 block">
+            Deskripsi Pesanan <span className="text-brand">*</span>
+          </label>
           <Textarea
-            placeholder="Contoh: tolong buat 2 buah, bahan akrilik 3mm..."
+            placeholder="Contoh: tolong buat 2 buah, bahan akrilik 3mm, warna biru..."
             value={store.notes}
             onChange={(e) => store.setNotes(e.target.value)}
-            rows={3}
-            className="bg-dark-100 border-white/10 text-white focus:border-brand resize-none"
+            rows={4}
+            className={`bg-dark-100 border-white/10 text-white focus:border-brand resize-none ${
+              store.notes.trim() === "" ? "border-red-500/30" : ""
+            }`}
           />
+          {store.notes.trim() === "" && (
+            <p className="text-xs text-red-400 mt-1">Deskripsi pesanan wajib diisi</p>
+          )}
         </div>
       </div>
 
@@ -307,7 +321,11 @@ export default function OrderForm() {
         {/* Send WhatsApp */}
         <Button
           onClick={handleSendWhatsApp}
-          disabled={!store.customerName.trim()}
+          disabled={
+            !store.customerName.trim() ||
+            !store.whatsappNumber.trim() ||
+            !store.notes.trim()
+          }
           className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-30 text-white font-bold py-6 text-base"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
