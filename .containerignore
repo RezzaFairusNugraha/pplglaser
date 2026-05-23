@@ -1,0 +1,13 @@
+# Exclude dari frontend container build
+node_modules/
+.next/
+.git/
+.gitignore
+*.md
+.env
+.env.local
+.env.*.local
+backend/
+nginx/
+templet/
+*.sh
