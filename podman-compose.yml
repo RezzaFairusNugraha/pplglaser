@@ -2,18 +2,20 @@ version: "3.8"
 
 # ─── PPLG Laser CNC — Podman Compose ───────────────────────────────
 # Usage:
-#   podman-compose up -d
-#   podman-compose down
-#   podman-compose logs -f
+#   podman-compose up -d          → start semua service
+#   podman-compose down           → stop semua service
+#   podman-compose logs -f        → lihat log realtime
+#   podman-compose pull           → update image base
+#   podman-compose up -d --build  → rebuild + start
 #
 # ⚠️  Sebelum pertama kali run, copy .env.example → .env dan ganti password!
 
 services:
 
-  # ── Database (MariaDB — ARM-compatible) ───────────────────────────────────
+  # ── Database (MariaDB — ARM-compatible) ──────────────────────────────────
   db:
     image: docker.io/mariadb:10.11
-    container_name: antigravity-db
+    container_name: pplg-db
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret123}
@@ -27,18 +29,18 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret123}"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
 
   # ── Backend (FastAPI) ─────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Containerfile
-    container_name: antigravity-backend
+    container_name: pplg-backend
     restart: unless-stopped
     environment:
       DB_HOST: db
@@ -48,12 +50,11 @@ services:
       DB_NAME: ${DB_NAME:-antigravity_db}
       ADMIN_SECRET: ${ADMIN_SECRET:-pplglaser}
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -66,20 +67,28 @@ services:
       dockerfile: Containerfile
       args:
         NEXT_PUBLIC_API_URL: /api
-    container_name: antigravity-frontend
+    container_name: pplg-frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_ADMIN_SECRET: ${ADMIN_SECRET:-pplglaser}
+      # Dipakai next.config.mjs untuk proxy /api/* ke backend
+      BACKEND_URL: http://backend:8000
     depends_on:
       - backend
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # ── Nginx (Reverse Proxy) ─────────────────────────────────────────────────
   nginx:
     image: docker.io/nginx:alpine
-    container_name: antigravity-nginx
+    container_name: pplg-nginx
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"

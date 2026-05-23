@@ -24,14 +24,16 @@ app.add_middleware(
 # ─── Retry DB init on startup ───────────────────────────────────────────────
 @app.on_event("startup")
 def startup():
-    for i in range(10):
+    max_retries = 20
+    for i in range(max_retries):
         try:
             init_db()
+            print("✅ Database connected successfully!")
             return
         except Exception as e:
-            print(f"⏳ DB not ready yet ({i+1}/10): {e}")
-            time.sleep(3)
-    raise RuntimeError("❌ Could not connect to database after 10 attempts")
+            print(f"⏳ DB not ready yet ({i+1}/{max_retries}): {e}")
+            time.sleep(5)
+    raise RuntimeError(f"❌ Could not connect to database after {max_retries} attempts")
 
 
 # ─── Auth dependency ─────────────────────────────────────────────────────────

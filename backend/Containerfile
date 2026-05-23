@@ -2,11 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install dependencies dulu (cache layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Salin source code (exclude venv via .containerignore)
 COPY . .
+
+# Beri izin eksekusi ke wait-for-db script
+RUN chmod +x /app/wait-for-db.sh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Gunakan wait-for-db sebagai entrypoint agar backend tunggu DB siap
+CMD ["/app/wait-for-db.sh"]
