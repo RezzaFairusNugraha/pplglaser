@@ -53,7 +53,7 @@ export default function TemplateSelector() {
                   : "border-white/10 hover:border-white/30"
               }`}
             >
-              <div className="relative aspect-square bg-dark-100">
+              <div className="relative aspect-square bg-white">
                 <Image
                   src={getTemplateImagePath(template.filename)}
                   alt={template.name}
