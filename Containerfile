@@ -8,9 +8,10 @@ RUN npm ci
 
 COPY . .
 
-# Set backend URL for build time
-ARG NEXT_PUBLIC_API_URL=http://localhost/api
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# BACKEND_URL harus di-pass saat build agar next.config.mjs rewrites() bisa membaca nilainya
+# Contoh: podman build --build-arg BACKEND_URL=https://backlaser.pplgsmkn4.my.id .
+ARG BACKEND_URL=https://backlaser.pplgsmkn4.my.id
+ENV BACKEND_URL=$BACKEND_URL
 
 RUN npm run build
 

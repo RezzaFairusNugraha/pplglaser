@@ -18,6 +18,9 @@ services:
     build:
       context: .
       dockerfile: Containerfile
+      args:
+        # BACKEND_URL di-pass saat BUILD agar next.config.mjs rewrites() membaca nilai yang benar
+        BACKEND_URL: ${BACKEND_URL:-https://backlaser.pplgsmkn4.my.id}
     container_name: pplg-frontend
     restart: unless-stopped
     environment:
