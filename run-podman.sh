@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 
-# Helper script to manage Antigravity Laser CNC Podman/Docker containers.
+# Helper script untuk menjalankan PPLG Laser CNC Frontend
+# Backend sudah jalan di: https://backlaser.pplgsmkn4.my.id
 
 set -e
 
-# Change directory to the script's directory
+# Pindah ke direktori script ini
 cd "$(dirname "$0")"
 
-# Auto-detect container compose command
-if podman compose version >/dev/null 2>&1; then
+# ── Auto-detect compose command ───────────────────────────────────────────────
+if podman compose version > /dev/null 2>&1; then
     COMPOSE_CMD="podman compose"
-elif command -v podman-compose >/dev/null 2>&1; then
+elif command -v podman-compose > /dev/null 2>&1; then
     COMPOSE_CMD="podman-compose"
-elif docker compose version >/dev/null 2>&1; then
+elif docker compose version > /dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
-elif command -v docker-compose >/dev/null 2>&1; then
+elif command -v docker-compose > /dev/null 2>&1; then
     COMPOSE_CMD="docker-compose"
 else
     echo "❌ Error: Tidak dapat menemukan 'podman compose', 'podman-compose', 'docker compose', atau 'docker-compose'."
     exit 1
 fi
 
-# Auto-detect compose file
+# ── Auto-detect compose file ──────────────────────────────────────────────────
 if [ -f podman-compose.yml ]; then
     COMPOSE_FILE_ARG="-f podman-compose.yml"
 elif [ -f docker-compose.yml ]; then
@@ -30,32 +31,50 @@ else
     COMPOSE_FILE_ARG=""
 fi
 
+# ── Fungsi help ───────────────────────────────────────────────────────────────
 show_help() {
+    echo ""
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║     PPLG Laser CNC — Frontend Runner         ║"
+    echo "║  Backend: https://backlaser.pplgsmkn4.my.id  ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
     echo "Penggunaan: ./run-podman.sh [opsi]"
     echo ""
-    echo "Opsi:"
-    echo "  up       - Membuat .env (jika belum ada), build image, dan jalankan container di background"
-    echo "  down     - Menghentikan dan menghapus semua container"
-    echo "  restart  - Restart semua container"
-    echo "  logs     - Melihat log dari semua container secara real-time"
-    echo "  status   - Melihat status container yang sedang berjalan"
-    echo "  help     - Menampilkan bantuan ini"
+    echo "  up       - Build & jalankan frontend container"
+    echo "  down     - Hentikan dan hapus container"
+    echo "  restart  - Restart container"
+    echo "  logs     - Lihat log real-time"
+    echo "  status   - Lihat status container"
+    echo "  help     - Tampilkan bantuan ini"
 }
 
+# ── Buat .env dari .env.example jika belum ada ────────────────────────────────
 init_env() {
     if [ ! -f .env ]; then
         echo "📝 File .env tidak ditemukan. Menyalin dari .env.example..."
         cp .env.example .env
-        echo "⚠️  Harap sesuaikan password dan konfigurasi di dalam file .env jika diperlukan!"
+        echo "✅ File .env dibuat dengan konfigurasi default."
+        echo "   BACKEND_URL sudah di-set ke https://backlaser.pplgsmkn4.my.id"
     fi
 }
 
+# ── Main ──────────────────────────────────────────────────────────────────────
 case "$1" in
     up)
         init_env
-        echo "🚀 Menjalankan container dengan $COMPOSE_CMD $COMPOSE_FILE_ARG..."
+        echo ""
+        echo "🚀 Menjalankan PPLG Frontend..."
+        echo "   Backend: $(grep BACKEND_URL .env | cut -d= -f2)"
+        echo "   Port   : $(grep HTTP_PORT .env | cut -d= -f2)"
+        echo ""
         $COMPOSE_CMD $COMPOSE_FILE_ARG up -d --build
-        echo "✅ Semua service berhasil dijalankan! Gunakan './run-podman.sh logs' untuk memantau."
+        echo ""
+        echo "✅ Frontend berhasil dijalankan!"
+        echo "   Akses: http://localhost:$(grep HTTP_PORT .env | cut -d= -f2)"
+        echo "   Admin: http://localhost:$(grep HTTP_PORT .env | cut -d= -f2)/admin"
+        echo ""
+        echo "   Gunakan './run-podman.sh logs' untuk memantau."
         ;;
     down)
         echo "🛑 Menghentikan container..."

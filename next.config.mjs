@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Mode standalone diperlukan untuk container deployment (podman/docker)
+  // Vercel juga support mode ini
+  output: "standalone",
   images: {
+
     remotePatterns: [],
   },
   reactStrictMode: true,
